@@ -9,13 +9,16 @@ import * as path from "path";
 
 export interface ReactRouterSsrStackProps extends cdk.StackProps {
   stage: string;
+  webAclArn?: string;
+  reservedConcurrency?: number;
+  provisionedConcurrency?: number;
 }
 
 export class ReactRouterSsrStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ReactRouterSsrStackProps) {
     super(scope, id, props);
 
-    const { stage } = props;
+    const { stage, webAclArn, reservedConcurrency, provisionedConcurrency } = props;
 
     // 1. S3 Bucket for static client assets (build/client/)
     const staticAssetsBucket = new s3.Bucket(this, "StaticAssetsBucket", {
@@ -34,17 +37,25 @@ export class ReactRouterSsrStack extends cdk.Stack {
       handler: "index.handler",
       memorySize: 1024,
       timeout: cdk.Duration.seconds(15),
+      reservedConcurrentExecutions: reservedConcurrency,
     });
 
-    // 3. Lambda Function URL in RESPONSE_STREAM mode for React Router streaming
-    const lambdaUrl = ssrLambda.addFunctionUrl({
+    // 3. Alias — provisioned concurrency (if set) eliminates cold starts for staging/prod
+    const ssrAlias = new lambda.Alias(this, "SsrAlias", {
+      aliasName: "live",
+      version: ssrLambda.currentVersion,
+      provisionedConcurrentExecutions: provisionedConcurrency,
+    });
+
+    // 4. Lambda Function URL on the alias in RESPONSE_STREAM mode for React Router streaming
+    const lambdaUrl = ssrAlias.addFunctionUrl({
       authType: lambda.FunctionUrlAuthType.NONE,
       invokeMode: lambda.InvokeMode.RESPONSE_STREAM,
     });
 
     const lambdaDomain = cdk.Fn.parseDomainName(lambdaUrl.url);
 
-    // 4. CloudFront Function: copies the viewer Host into x-viewer-host so the
+    // 5. CloudFront Function: copies the viewer Host into x-viewer-host so the
     //    Lambda adapter can derive the correct host for React Router's CSRF check.
     //    (requestContext.domainName is always the internal *.lambda-url domain.)
     const viewerHostFunction = new cloudfront.Function(this, "ViewerHostFunction", {
@@ -63,10 +74,11 @@ export class ReactRouterSsrStack extends cdk.Stack {
       runtime: cloudfront.FunctionRuntime.JS_2_0,
     });
 
-    // 5. CloudFront Distribution
+    // 6. CloudFront Distribution
     const distribution = new cloudfront.Distribution(this, "SsrDistribution", {
       comment: `${stage}-react-router-ssr`,
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
+      webAclId: webAclArn,
       defaultBehavior: {
         origin: new origins.HttpOrigin(lambdaDomain),
         allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
@@ -96,14 +108,14 @@ export class ReactRouterSsrStack extends cdk.Stack {
     // *.*  matches any path with a file extension; React Router routes never contain dots
     distribution.addBehavior("*.*", s3Origin, staticBehavior);
 
-    // 6. Deploy build/client/ assets to S3
+    // 7. Deploy build/client/ assets to S3
     new s3deploy.BucketDeployment(this, "DeployStaticAssets", {
       sources: [s3deploy.Source.asset(path.join(__dirname, "../../build/client"))],
       destinationBucket: staticAssetsBucket,
       distribution,
       distributionPaths: ["/assets/*", "/*.*"],
       prune: true,
-      memoryLimit: 512,
+      memoryLimit: 1024,
     });
 
     new cdk.CfnOutput(this, "CloudFrontURL", {

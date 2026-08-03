@@ -9,11 +9,11 @@
     "cdk": "cdk --app \"node ./node_modules/.bin/ts-node --project infrastructure/tsconfig.json infrastructure/bin/app.ts\"",
     "cdk:name": "node -p \"require('./package.json').name\"",
     "cdk:deploy:dev": "npm run build && npm run cdk -- deploy $(npm run --silent cdk:name)-Dev",
-    "cdk:deploy:staging": "npm run build && npm run cdk -- deploy $(npm run --silent cdk:name)-Staging",
-    "cdk:deploy:prod": "npm run build && npm run cdk -- deploy $(npm run --silent cdk:name)-Prod",
+    "cdk:deploy:staging": "npm run build && npm run cdk -- deploy \"$(npm run --silent cdk:name)-Staging*\"",
+    "cdk:deploy:prod": "npm run build && npm run cdk -- deploy \"$(npm run --silent cdk:name)-Prod*\"",
     "cdk:destroy:dev": "npm run cdk -- destroy $(npm run --silent cdk:name)-Dev",
-    "cdk:destroy:staging": "npm run cdk -- destroy $(npm run --silent cdk:name)-Staging",
-    "cdk:destroy:prod": "npm run cdk -- destroy $(npm run --silent cdk:name)-Prod"
+    "cdk:destroy:staging": "npm run cdk -- destroy \"$(npm run --silent cdk:name)-Staging*\"",
+    "cdk:destroy:prod": "npm run cdk -- destroy \"$(npm run --silent cdk:name)-Prod*\""
   },
   "dependencies": {
     "@react-router/node": "^8.3.0",

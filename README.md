@@ -56,3 +56,34 @@ npm run cdk:destroy:prod
 ```
 
 > **Note:** Destroying a stack deletes the S3 bucket and all its contents. Make sure you do not need the bucket contents before running destroy.
+
+## Optional: WAF and Lambda concurrency
+
+These features are commented out in [infrastructure/bin/app.ts](infrastructure/bin/app.ts) by default because they incur additional AWS charges.
+
+### WAF (Web Application Firewall)
+
+Attaches a CloudFront WAF WebACL to staging and prod distributions. Includes:
+
+- IP-based rate limiting (blocks IPs exceeding 2000 requests per 5 minutes)
+- AWS Managed Rules Common Rule Set (covers OWASP Top 10 — SQLi, XSS, etc.)
+
+**Cost:** ~$5/month per WebACL + $0.60 per million requests.
+
+To enable, uncomment the following in `infrastructure/bin/app.ts`:
+
+1. The `WafStack` import at the top of the file
+2. The `stagingWaf` and `prodWaf` stack instantiation blocks
+3. The `webAclArn` prop inside the staging and prod `ReactRouterSsrStack` calls
+
+> WAF WebACLs for CloudFront must be deployed in `us-east-1`. The `WafStack` enforces this automatically.
+
+### Lambda concurrency
+
+`reservedConcurrency` caps how many concurrent executions the function can have, protecting the rest of your AWS account from a traffic spike consuming all available concurrency.
+
+`provisionedConcurrency` keeps a number of Lambda execution environments pre-initialized, eliminating cold starts. It is set on a Lambda alias (`live`) so it does not affect the raw function.
+
+**Cost:** provisioned concurrency is billed per GB-second for the pre-initialized environments, even when idle. At the defaults (2 for staging, 5 for prod) this is roughly $3–8/month per stage depending on region.
+
+To enable, uncomment the `reservedConcurrency` and `provisionedConcurrency` props inside the staging and prod `ReactRouterSsrStack` calls in `infrastructure/bin/app.ts`. Adjust the values to fit your expected traffic.
