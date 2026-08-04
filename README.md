@@ -86,7 +86,7 @@ These features are commented out in [infrastructure/bin/app.ts](infrastructure/b
 
 Attaches a CloudFront WAF WebACL to staging and prod distributions. Includes IP-based rate limiting (2000 req/5 min per IP) and the AWS Managed Rules Common Rule Set (OWASP Top 10 — SQLi, XSS, etc.).
 
-**Cost:** ~$5/month per WebACL + $0.60 per million requests (~$10–12/month fixed for staging + prod).
+**Cost:** $5/month per WebACL + $0.60 per million requests (~$10–12/month fixed for staging + prod).
 
 To enable, uncomment the following in `infrastructure/bin/app.ts`:
 
