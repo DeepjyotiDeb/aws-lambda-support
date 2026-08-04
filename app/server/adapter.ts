@@ -82,9 +82,18 @@ export function createFunctionURLStreamingRequestHandler(
       return;
     }
 
-    // const loadContext = options.getLoadContext?.(event, request);
-    // const response = await handleRequest(request, loadContext);
-    const response = await handleRequest(request);
+    let loadContext: unknown;
+    try {
+      loadContext = options.getLoadContext?.(event, request);
+    } catch (e) {
+      if (e instanceof Response) {
+        await sendResponse(e, responseStream);
+        return;
+      }
+      throw e;
+    }
+    //@ts-ignore
+    const response = await handleRequest(request, loadContext);
     await sendResponse(response, responseStream);
   });
 }

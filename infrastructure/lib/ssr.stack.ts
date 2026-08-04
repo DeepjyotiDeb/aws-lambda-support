@@ -10,6 +10,7 @@ import * as path from "path";
 export interface ReactRouterSsrStackProps extends cdk.StackProps {
   stage: string;
   appName: string;
+  originSecret?: string;
   webAclArn?: string;
   reservedConcurrency?: number;
   provisionedConcurrency?: number;
@@ -19,7 +20,8 @@ export class ReactRouterSsrStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ReactRouterSsrStackProps) {
     super(scope, id, props);
 
-    const { stage, webAclArn, reservedConcurrency, provisionedConcurrency, appName } = props;
+    const { stage, webAclArn, reservedConcurrency, provisionedConcurrency, appName, originSecret } =
+      props;
 
     // 1. S3 Bucket for static client assets (build/client/)
     const staticAssetsBucket = new s3.Bucket(this, "StaticAssetsBucket", {
@@ -39,6 +41,9 @@ export class ReactRouterSsrStack extends cdk.Stack {
       memorySize: 512,
       timeout: cdk.Duration.seconds(15),
       reservedConcurrentExecutions: reservedConcurrency,
+      environment: {
+        ...(originSecret ? { ORIGIN_SECRET: originSecret } : {}),
+      },
     });
 
     // 3. Alias — provisioned concurrency (if set) eliminates cold starts for staging/prod
@@ -81,7 +86,9 @@ export class ReactRouterSsrStack extends cdk.Stack {
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
       webAclId: webAclArn,
       defaultBehavior: {
-        origin: new origins.HttpOrigin(lambdaDomain),
+        origin: new origins.HttpOrigin(lambdaDomain, {
+          ...(originSecret ? { customHeaders: { "x-origin-secret": originSecret } } : {}),
+        }),
         allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
