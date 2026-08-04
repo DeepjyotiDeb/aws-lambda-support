@@ -2,6 +2,11 @@
 
 A project template for server-side rendered React Router v8 apps deployed to AWS using CDK. The stack provisions a Lambda function for SSR, an S3 bucket for static assets, and a CloudFront distribution in front of both.
 
+To use this template run the following command
+```bash
+npx create-react-router@latest <app-name> --template DeepjyotiDeb/aws-lambda-support
+```
+
 ## Architecture
 
 - **CloudFront** — CDN that routes `/assets/*` to S3 and everything else to the Lambda function URL
@@ -11,7 +16,7 @@ A project template for server-side rendered React Router v8 apps deployed to AWS
 ## Prerequisites
 
 - An AWS account with credentials configured locally
-- AWS CDK CLI: `npm install -g aws-cdk`
+- AWS CDK CLI: install using `npm install -g aws-cdk`
 - Node.js 22.21.1+
 
 ## First-time setup

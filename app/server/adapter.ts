@@ -8,6 +8,7 @@ import type { ServerBuild } from "react-router";
 interface HandlerOptions {
   build: ServerBuild | (() => Promise<ServerBuild>);
   mode?: string;
+  getLoadContext?: (event: APIGatewayProxyEventV2, request: Request) => unknown;
 }
 
 function createWebRequest(event: APIGatewayProxyEventV2): Request {
@@ -81,6 +82,8 @@ export function createFunctionURLStreamingRequestHandler(
       return;
     }
 
+    // const loadContext = options.getLoadContext?.(event, request);
+    // const response = await handleRequest(request, loadContext);
     const response = await handleRequest(request);
     await sendResponse(response, responseStream);
   });

@@ -9,6 +9,7 @@ import * as path from "path";
 
 export interface ReactRouterSsrStackProps extends cdk.StackProps {
   stage: string;
+  appName: string;
   webAclArn?: string;
   reservedConcurrency?: number;
   provisionedConcurrency?: number;
@@ -18,7 +19,7 @@ export class ReactRouterSsrStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ReactRouterSsrStackProps) {
     super(scope, id, props);
 
-    const { stage, webAclArn, reservedConcurrency, provisionedConcurrency } = props;
+    const { stage, webAclArn, reservedConcurrency, provisionedConcurrency, appName } = props;
 
     // 1. S3 Bucket for static client assets (build/client/)
     const staticAssetsBucket = new s3.Bucket(this, "StaticAssetsBucket", {
@@ -31,11 +32,11 @@ export class ReactRouterSsrStack extends cdk.Stack {
     // 2. Lambda Function for SSR — uses Vite's pre-built output (build/server/index.mjs).
     //    lambda.Function is used instead of NodejsFunction because Vite already bundles everything.
     const ssrLambda = new lambda.Function(this, "SsrLambdaHandler", {
-      functionName: `${stage}-react-router-ssr`,
+      functionName: `${appName}-${stage}-react-router-ssr`,
       runtime: lambda.Runtime.NODEJS_20_X,
       code: lambda.Code.fromAsset(path.join(__dirname, "../../build/server")),
       handler: "index.handler",
-      memorySize: 1024,
+      memorySize: 512,
       timeout: cdk.Duration.seconds(15),
       reservedConcurrentExecutions: reservedConcurrency,
     });
@@ -59,7 +60,7 @@ export class ReactRouterSsrStack extends cdk.Stack {
     //    Lambda adapter can derive the correct host for React Router's CSRF check.
     //    (requestContext.domainName is always the internal *.lambda-url domain.)
     const viewerHostFunction = new cloudfront.Function(this, "ViewerHostFunction", {
-      functionName: `${stage}-viewer-host`,
+      functionName: `${appName}-${stage}-viewer-host`,
       code: cloudfront.FunctionCode.fromInline(`
       function handler(event) {
         var host = event.request.headers.host;
@@ -76,7 +77,7 @@ export class ReactRouterSsrStack extends cdk.Stack {
 
     // 6. CloudFront Distribution
     const distribution = new cloudfront.Distribution(this, "SsrDistribution", {
-      comment: `${stage}-react-router-ssr`,
+      comment: `${appName}-${stage}-react-router-ssr`,
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
       webAclId: webAclArn,
       defaultBehavior: {
@@ -121,13 +122,13 @@ export class ReactRouterSsrStack extends cdk.Stack {
     new cdk.CfnOutput(this, "CloudFrontURL", {
       value: `https://${distribution.distributionDomainName}`,
       description: "CloudFront Distribution URL",
-      exportName: `${stage}-react-router-CloudFrontURL`,
+      exportName: `${appName}-${stage}-react-router-CloudFrontURL`,
     });
 
     new cdk.CfnOutput(this, "DistributionId", {
       value: distribution.distributionId,
       description: "CloudFront Distribution ID",
-      exportName: `${stage}-react-router-DistributionId`,
+      exportName: `${appName}-${stage}-react-router-DistributionId`,
     });
   }
 }

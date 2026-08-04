@@ -4,6 +4,7 @@ import * as wafv2 from "aws-cdk-lib/aws-wafv2";
 
 export interface WafStackProps extends cdk.StackProps {
   stage: string;
+  appName: string;
   // Requests per 5-minute window per IP before blocking; defaults to 2000
   rateLimit?: number;
 }
@@ -15,7 +16,7 @@ export class WafStack extends cdk.Stack {
     // WAF for CloudFront must always be in us-east-1
     super(scope, id, { ...props, env: { ...props.env, region: "us-east-1" } });
 
-    const { stage, rateLimit = 2000 } = props;
+    const { stage, rateLimit = 2000, appName } = props;
 
     const visibilityConfig = (metricName: string): wafv2.CfnWebACL.VisibilityConfigProperty => ({
       cloudWatchMetricsEnabled: true,
@@ -24,10 +25,10 @@ export class WafStack extends cdk.Stack {
     });
 
     const webAcl = new wafv2.CfnWebACL(this, "WebACL", {
-      name: `${stage}-react-router-waf`,
+      name: `${appName}-${stage}-react-router-waf`,
       scope: "CLOUDFRONT",
       defaultAction: { allow: {} },
-      visibilityConfig: visibilityConfig(`${stage}-react-router-waf`),
+      visibilityConfig: visibilityConfig(`${appName}-${stage}-react-router-waf`),
       rules: [
         {
           name: "RateLimitPerIp",
@@ -39,7 +40,7 @@ export class WafStack extends cdk.Stack {
               aggregateKeyType: "IP",
             },
           },
-          visibilityConfig: visibilityConfig(`${stage}-rate-limit`),
+          visibilityConfig: visibilityConfig(`${appName}-${stage}-rate-limit`),
         },
         {
           name: "AWSManagedRulesCommonRuleSet",
@@ -51,7 +52,7 @@ export class WafStack extends cdk.Stack {
               name: "AWSManagedRulesCommonRuleSet",
             },
           },
-          visibilityConfig: visibilityConfig(`${stage}-common-rules`),
+          visibilityConfig: visibilityConfig(`${appName}-${stage}-common-rules`),
         },
       ],
     });
