@@ -17,7 +17,7 @@ npx create-react-router@latest <app-name> --template DeepjyotiDeb/aws-lambda-sup
 
 - An AWS account with credentials configured locally
 - AWS CDK CLI: install using `npm install -g aws-cdk`
-- Node.js 22.21.1+
+- Node.js 22.22.1+
 
 ## First-time setup
 
@@ -64,7 +64,7 @@ npm run cdk:destroy:prod
 
 ## Cost
 
-All resources are pay-per-use. The infrastructure has no standing charges by default — you pay nothing when there is no traffic.
+All resources are pay-per-use. The infrastructure has no standing charges by default — you pay nothing when there is no traffic. Note that charges will be incurred if there is significant enough traffic.
 
 | Monthly SSR requests | Approx cost |
 |---|---|
