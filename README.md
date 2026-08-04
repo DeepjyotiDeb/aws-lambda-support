@@ -4,7 +4,7 @@ A project template for server-side rendered React Router v8 apps deployed to AWS
 
 To use this template run the following command
 ```bash
-npx create-react-router@latest <app-name> --template DeepjyotiDeb/aws-lambda-support
+npx create-react-router@latest my-web-app --template DeepjyotiDeb/aws-lambda-support
 ```
 
 ## Architecture
