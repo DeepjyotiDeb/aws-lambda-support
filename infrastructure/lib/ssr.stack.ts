@@ -11,6 +11,7 @@ export interface ReactRouterSsrStackProps extends cdk.StackProps {
   stage: string;
   appName: string;
   originSecret?: string;
+  sessionSecret?: string;
   webAclArn?: string;
   reservedConcurrency?: number;
   provisionedConcurrency?: number;
@@ -20,8 +21,15 @@ export class ReactRouterSsrStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ReactRouterSsrStackProps) {
     super(scope, id, props);
 
-    const { stage, webAclArn, reservedConcurrency, provisionedConcurrency, appName, originSecret } =
-      props;
+    const {
+      stage,
+      webAclArn,
+      reservedConcurrency,
+      provisionedConcurrency,
+      appName,
+      originSecret,
+      sessionSecret,
+    } = props;
 
     // 1. S3 Bucket for static client assets (build/client/)
     const staticAssetsBucket = new s3.Bucket(this, "StaticAssetsBucket", {
@@ -35,14 +43,16 @@ export class ReactRouterSsrStack extends cdk.Stack {
     //    lambda.Function is used instead of NodejsFunction because Vite already bundles everything.
     const ssrLambda = new lambda.Function(this, "SsrLambdaHandler", {
       functionName: `${appName}-${stage}-react-router-ssr`,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       code: lambda.Code.fromAsset(path.join(__dirname, "../../build/server")),
       handler: "index.handler",
       memorySize: 512,
       timeout: cdk.Duration.seconds(15),
       reservedConcurrentExecutions: reservedConcurrency,
       environment: {
+        NODE_ENV: "production",
         ...(originSecret ? { ORIGIN_SECRET: originSecret } : {}),
+        ...(sessionSecret ? { SESSION_SECRET: sessionSecret } : {}),
       },
     });
 
@@ -66,6 +76,7 @@ export class ReactRouterSsrStack extends cdk.Stack {
     //    (requestContext.domainName is always the internal *.lambda-url domain.)
     const viewerHostFunction = new cloudfront.Function(this, "ViewerHostFunction", {
       functionName: `${appName}-${stage}-viewer-host`,
+
       code: cloudfront.FunctionCode.fromInline(`
       function handler(event) {
         var host = event.request.headers.host;
@@ -111,6 +122,24 @@ export class ReactRouterSsrStack extends cdk.Stack {
 
     // Hashed build assets
     distribution.addBehavior("assets/*", s3Origin, staticBehavior);
+
+    // React Router v8 single-fetch uses "<route>.data" for all data requests.
+    // Must be routed to Lambda before "*.*" matches it and sends it to S3.
+    const ssrOrigin = new origins.HttpOrigin(lambdaDomain, {
+      ...(originSecret ? { customHeaders: { "x-origin-secret": originSecret } } : {}),
+    });
+    distribution.addBehavior("*.data", ssrOrigin, {
+      allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+      viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+      originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+      functionAssociations: [
+        {
+          function: viewerHostFunction,
+          eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+        },
+      ],
+    });
 
     // All other static files from public/ (favicon.ico, robots.txt, sitemap.xml, etc.)
     // *.*  matches any path with a file extension; React Router routes never contain dots

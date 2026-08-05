@@ -7,6 +7,7 @@ const app = new cdk.App();
 const account = process.env.CDK_ACCOUNT_ID;
 const region = process.env.CDK_DEFAULT_REGION;
 const originSecret = process.env.ORIGIN_SECRET;
+const sessionSecret = process.env.SESSION_SECRET;
 // Stack ID is derived from package.json name so it stays stable across checkouts
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { name: appName } = require("../../package.json") as { name: string };
@@ -16,6 +17,7 @@ new ReactRouterSsrStack(app, `${appName}-Dev`, {
   stage: "dev",
   appName,
   originSecret,
+  sessionSecret,
   description: `React Router SSR Stack for ${appName} Development`,
 });
 
@@ -33,6 +35,7 @@ new ReactRouterSsrStack(app, `${appName}-Staging`, {
   stage: "staging",
   appName,
   originSecret,
+  sessionSecret,
   // webAclArn: stagingWaf.webAclArn,
   // reservedConcurrency: 50,
   // provisionedConcurrency: 2,
@@ -50,6 +53,7 @@ new ReactRouterSsrStack(app, `${appName}-Prod`, {
   stage: "prod",
   appName,
   originSecret,
+  sessionSecret,
   // webAclArn: prodWaf.webAclArn,
   // reservedConcurrency: 200,
   // provisionedConcurrency: 5,
