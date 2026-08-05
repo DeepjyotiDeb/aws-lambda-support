@@ -106,6 +106,50 @@ To enable, uncomment the following in `infrastructure/bin/app.ts`:
 
 To enable, uncomment the `reservedConcurrency` and `provisionedConcurrency` props inside the staging and prod `ReactRouterSsrStack` calls in `infrastructure/bin/app.ts`.
 
+## Session storage
+
+`app/server/session.ts` exports a signed cookie session using React Router's `createCookieSessionStorage`. It is untyped by default — add TypeScript generics to get type-safe `session.get`/`session.set` calls:
+
+```ts
+type SessionData = {
+  user: { id: string; name: string; email: string };
+};
+
+type SessionFlashData = {
+  error: string;
+};
+
+export const { getSession, commitSession, destroySession } =
+  createCookieSessionStorage<SessionData, SessionFlashData>({ ... });
+```
+
+To read/write the session in a loader, action, or middleware:
+
+```ts
+import { getSession, commitSession, destroySession } from "~/server/session";
+
+// read
+const session = await getSession(request.headers.get("Cookie"));
+const user = session.get("user") ?? null;
+
+// write and persist
+session.set("user", { id: "1", name: "Alice", email: "alice@example.com" });
+return redirect("/dashboard", {
+  headers: { "Set-Cookie": await commitSession(session) },
+});
+
+// destroy (logout)
+return redirect("/", {
+  headers: { "Set-Cookie": await destroySession(session) },
+});
+```
+
+`SESSION_SECRET` must be set as an environment variable at deploy time — see the gotcha note below. Rotate it by adding a new value to the front of the `secrets` array (old sessions remain valid until they expire):
+
+```ts
+secrets: [process.env.SESSION_SECRET_NEW!, process.env.SESSION_SECRET_OLD!],
+```
+
 ## Known gotchas
 
 ### WebSockets and SSE
