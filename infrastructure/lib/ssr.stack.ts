@@ -4,6 +4,8 @@ import * as s3 from "aws-cdk-lib/aws-s3";
 import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
+import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
+import * as logs from "aws-cdk-lib/aws-logs";
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as path from "path";
 
@@ -39,6 +41,12 @@ export class ReactRouterSsrStack extends cdk.Stack {
       autoDeleteObjects: true,
     });
 
+    const logGroup = new logs.LogGroup(this, "SsrLogGroup", {
+      logGroupName: `/aws/lambda/${appName}-${stage}`,
+      retention: logs.RetentionDays.ONE_DAY,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
     // 2. Lambda Function for SSR — uses Vite's pre-built output (build/server/index.mjs).
     //    lambda.Function is used instead of NodejsFunction because Vite already bundles everything.
     const ssrLambda = new lambda.Function(this, "SsrLambdaHandler", {
@@ -49,6 +57,10 @@ export class ReactRouterSsrStack extends cdk.Stack {
       memorySize: 512,
       timeout: cdk.Duration.seconds(15),
       reservedConcurrentExecutions: reservedConcurrency,
+      logGroup,
+      loggingFormat: lambda.LoggingFormat.JSON,
+      applicationLogLevel: lambda.ApplicationLogLevel.INFO,
+      systemLogLevel: lambda.SystemLogLevel.WARN,
       environment: {
         NODE_ENV: "production",
         ...(originSecret ? { ORIGIN_SECRET: originSecret } : {}),
