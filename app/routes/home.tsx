@@ -8,6 +8,10 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-export default function Home({}: Route.ComponentProps) {
-  return <Welcome />;
+export async function loader({ request: _request }: Route.LoaderArgs) {
+  return new Response("I am a message from the server!");
+}
+
+export default function Home({ loaderData }: Route.ComponentProps) {
+  return <Welcome loaderData={loaderData} />;
 }
