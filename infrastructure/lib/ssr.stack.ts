@@ -11,10 +11,7 @@ import * as path from "path";
 export interface ReactRouterSsrStackProps extends cdk.StackProps {
   stage: string;
   appName: string;
-  cookieSecrets: string;
-  mongodbUri: string;
-  sesFromAddress?: string;
-  authFlags?: Record<string, string>;
+  environment: Record<string, string>;
   webAclArn?: string;
   reservedConcurrency?: number;
   provisionedConcurrency?: number;
@@ -31,10 +28,7 @@ export class ReactRouterSsrStack extends cdk.Stack {
       reservedConcurrency,
       provisionedConcurrency,
       appName,
-      cookieSecrets,
-      mongodbUri,
-      sesFromAddress,
-      authFlags = {},
+      environment,
       logRetention = logs.RetentionDays.ONE_MONTH,
     } = props;
 
@@ -68,10 +62,7 @@ export class ReactRouterSsrStack extends cdk.Stack {
       systemLogLevel: lambda.SystemLogLevel.WARN,
       environment: {
         NODE_ENV: "production",
-        COOKIE_SECRETS: cookieSecrets,
-        MONGODB_URI: mongodbUri,
-        ...(sesFromAddress ? { SES_FROM_ADDRESS: sesFromAddress } : {}),
-        ...authFlags,
+        ...environment,
       },
     });
 

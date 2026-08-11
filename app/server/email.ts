@@ -1,12 +1,12 @@
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 
 const sesClient = new SESClient({
-  region: "ap-south-1",
+  region: process.env.CDK_DEFAULT_REGION,
   credentials: {
     accessKeyId: process.env.ACCESS_KEY!,
-    secretAccessKey: process.env.SECRET_KEY!
-  }
-})
+    secretAccessKey: process.env.SECRET_KEY!,
+  },
+});
 
 export async function sendEmail(to: string, subject: string, htmlBody: string) {
   const fromAddress = process.env.SES_FROM_ADDRESS;
@@ -29,5 +29,5 @@ export async function sendEmail(to: string, subject: string, htmlBody: string) {
     },
   });
 
-  const res = await sesClient.send(command);
+  await sesClient.send(command);
 }

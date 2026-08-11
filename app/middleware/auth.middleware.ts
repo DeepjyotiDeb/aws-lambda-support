@@ -1,10 +1,6 @@
 import { redirect } from "react-router";
 import { getSession, commitSession, refreshCookie } from "~/server/cookie";
-import {
-  validateToken,
-  issueToken,
-  consumeAndValidateToken,
-} from "~/server/services/token.service";
+import { issueToken, consumeAndValidateToken } from "~/server/services/token.service";
 import { userContext, authFlagsContext, getAuthFlagsFromEnv } from "~/context";
 import { getUserDetails } from "~/server/services/user.service";
 

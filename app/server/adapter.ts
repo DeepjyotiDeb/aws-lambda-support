@@ -92,7 +92,7 @@ export function createFunctionURLStreamingRequestHandler(
       }
       throw e;
     }
-    //@ts-ignore
+    //@ts-expect-error - The type of loadContext is unknown, but we can assume it is compatible with the context expected by the request handler.
     const response = await handleRequest(request, loadContext);
     await sendResponse(response, responseStream);
   });

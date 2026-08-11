@@ -3,14 +3,13 @@ import * as cdk from "aws-cdk-lib";
 import * as logs from "aws-cdk-lib/aws-logs";
 import { ReactRouterSsrStack } from "../lib/ssr.stack";
 // import { WafStack } from "../lib/waf.stack";
+// Stack ID is derived from package.json name so it stays stable across checkouts
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { name: appName } = require("../../package.json") as { name: string };
 
 const app = new cdk.App();
 const account = process.env.CDK_ACCOUNT_ID;
 const region = process.env.CDK_DEFAULT_REGION;
-
-const cookieSecrets = process.env.COOKIE_SECRETS!;
-const mongodbUri = process.env.MONGODB_URI!;
-const sesFromAddress = process.env.SES_FROM_ADDRESS;
 
 // AUTH_* feature flags — only inject the ones explicitly set so defaults in code stay effective
 const authFlags = Object.fromEntries(
@@ -26,18 +25,18 @@ const authFlags = Object.fromEntries(
     .map((k) => [k, process.env[k]!]),
 );
 
-// Stack ID is derived from package.json name so it stays stable across checkouts
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { name: appName } = require("../../package.json") as { name: string };
+const environment: Record<string, string> = {
+  COOKIE_SECRETS: process.env.COOKIE_SECRETS!,
+  MONGODB_URI: process.env.MONGODB_URI!,
+  SES_FROM_ADDRESS: process.env.SES_FROM_ADDRESS!,
+  ...authFlags,
+};
 
 new ReactRouterSsrStack(app, `${appName}-Dev`, {
   env: { account, region },
   stage: "dev",
   appName,
-  cookieSecrets,
-  mongodbUri,
-  sesFromAddress,
-  authFlags,
+  environment,
   logRetention: logs.RetentionDays.ONE_DAY,
   description: `React Router SSR Stack for ${appName} Development`,
 });
@@ -55,10 +54,7 @@ new ReactRouterSsrStack(app, `${appName}-Staging`, {
   env: { account, region },
   stage: "staging",
   appName,
-  cookieSecrets,
-  mongodbUri,
-  sesFromAddress,
-  authFlags,
+  environment,
   logRetention: logs.RetentionDays.ONE_MONTH,
   // webAclArn: stagingWaf.webAclArn,
   // reservedConcurrency: 50,
@@ -76,10 +72,7 @@ new ReactRouterSsrStack(app, `${appName}-Prod`, {
   env: { account, region },
   stage: "prod",
   appName,
-  cookieSecrets,
-  mongodbUri,
-  sesFromAddress,
-  authFlags,
+  environment,
   logRetention: logs.RetentionDays.THREE_MONTHS,
   // webAclArn: prodWaf.webAclArn,
   // reservedConcurrency: 200,
