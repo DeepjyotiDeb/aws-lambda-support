@@ -16,11 +16,16 @@
     "cdk:destroy:prod": "npm run cdk -- destroy \"$(npm run --silent cdk:name)-Prod*\""
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.1106.0",
     "@react-router/node": "^8.3.0",
+    "@typegoose/typegoose": "^13.4.0",
+    "bcryptjs": "^3.0.3",
     "isbot": "^5.1.36",
+    "mongodb": "^7.5.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router": "^8"
+    "react-router": "^8",
+    "valibot": "^1.4.2"
   },
   "devDependencies": {
     "@react-router/dev": "^8",
@@ -29,7 +34,7 @@
     "@types/node": "^22",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "aws-cdk-lib": "^2.263.0",
+    "aws-cdk-lib": "^2.264.0",
     "aws-lambda": "^1.0.7",
     "constructs": "^10.7.2",
     "esbuild": "^0.28.1",

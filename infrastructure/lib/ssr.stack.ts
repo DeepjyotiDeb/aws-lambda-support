@@ -4,7 +4,6 @@ import * as s3 from "aws-cdk-lib/aws-s3";
 import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
-import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as path from "path";
