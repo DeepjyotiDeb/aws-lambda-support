@@ -1,4 +1,4 @@
-import { useActionData, Form, Link } from "react-router";
+import { useActionData, Form, Link, useNavigation } from "react-router";
 import type { Route } from "./+types/login";
 import { createAuthResponse } from "~/server/auth";
 import { checkRateLimit } from "~/server/services/rateLimiter.service";
@@ -28,7 +28,8 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function Login() {
   const actionData = useActionData<typeof action>();
-
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
   return (
     <div className="flex justify-center items-center h-screen">
       <div className="bg-gray-700 p-8 rounded shadow-md w-96">
@@ -36,7 +37,7 @@ export default function Login() {
         {actionData?.error && (
           <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{actionData.error}</div>
         )}
-        <Form method="post" className="flex flex-col gap-4">
+        <Form method="post" className="flex flex-col gap-4" viewTransition>
           <div>
             <label className="block text-sm font-medium mb-1">Email</label>
             <input name="email" type="email" required className="w-full border rounded p-2" />
@@ -45,7 +46,11 @@ export default function Login() {
             <label className="block text-sm font-medium mb-1">Password</label>
             <input name="password" type="password" required className="w-full border rounded p-2" />
           </div>
-          <button type="submit" className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
+          <button
+            type="submit"
+            className={`bg-blue-600 text-white p-2 rounded hover:bg-blue-700 ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+            disabled={isSubmitting}
+          >
             Sign In
           </button>
         </Form>

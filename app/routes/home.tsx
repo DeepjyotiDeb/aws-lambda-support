@@ -1,9 +1,9 @@
-import { Form } from "react-router";
+import { Form, useNavigation } from "react-router";
 import type { Route } from "./+types/home";
 import { userContext } from "~/context";
 
 export function meta() {
-  return [{ title: "New React Router App" }, { name: "description", content: "Welcome!" }];
+  return [{ title: "Home" }, { name: "description", content: "Welcome!" }];
 }
 
 export async function loader({ context }: Route.LoaderArgs) {
@@ -13,6 +13,7 @@ export async function loader({ context }: Route.LoaderArgs) {
 
 export default function Home({ loaderData }: Route.ComponentProps) {
   const { email, emailVerified, createdAt } = loaderData;
+  const navigation = useNavigation();
 
   return (
     <div className="flex justify-center items-center h-screen">
@@ -29,10 +30,11 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           {new Date(createdAt).toLocaleDateString()}
         </p>
 
-        <Form method="post" action="/logout">
+        <Form method="post" action="/logout" viewTransition>
           <button
             type="submit"
-            className="bg-red-600 text-white p-2 rounded hover:bg-red-700 cursor-pointer"
+            className={`bg-red-600 text-white p-2 rounded hover:bg-red-700 cursor-pointer ${navigation.state === "submitting" ? "opacity-50 cursor-not-allowed" : ""}`}
+            disabled={navigation.state === "submitting"}
           >
             Logout
           </button>

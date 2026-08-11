@@ -1,4 +1,4 @@
-import { Form, Link, useActionData } from "react-router";
+import { Form, Link, useActionData, useNavigation } from "react-router";
 import type { Route } from "./+types/register";
 import * as v from "valibot";
 import { createAuthResponse } from "~/server/auth";
@@ -30,11 +30,12 @@ export async function action({ request }: Route.ActionArgs) {
     return { success: true, message: "Check your inbox to complete registration" };
   }
 
-  return createAuthResponse(result.userId, "/", request);
+  // return createAuthResponse(result.userId, "/", request);
 }
 
 export default function Register() {
   const actionData = useActionData<typeof action>();
+  const navigation = useNavigation();
 
   if (actionData?.success) {
     return (
@@ -54,7 +55,7 @@ export default function Register() {
         {actionData?.error && (
           <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{actionData.error}</div>
         )}
-        <Form method="post" className="flex flex-col gap-4">
+        <Form method="post" className="flex flex-col gap-4" viewTransition>
           <div>
             <label className="block text-sm font-medium mb-1">Email</label>
             <input name="email" type="email" required className="w-full border rounded p-2" />
@@ -69,7 +70,11 @@ export default function Register() {
               className="w-full border rounded p-2"
             />
           </div>
-          <button type="submit" className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
+          <button
+            type="submit"
+            className={`bg-blue-600 text-white p-2 rounded hover:bg-blue-700 ${navigation.state === "submitting" ? "opacity-50 cursor-not-allowed" : ""}`}
+            disabled={navigation.state === "submitting"}
+          >
             Sign Up
           </button>
         </Form>

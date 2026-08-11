@@ -1,9 +1,19 @@
 import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
+import { visualizer } from "rollup-plugin-visualizer";
 
 export default defineConfig(({ command }) => ({
-  plugins: [tailwindcss(), reactRouter()],
+  plugins: [
+    tailwindcss(),
+    reactRouter(),
+    visualizer({
+      open: false, // Automatically opens the report in your browser
+      filename: "bundle-analysis.html",
+      gzipSize: true,
+      brotliSize: true,
+    }),
+  ],
   resolve: {
     tsconfigPaths: true,
   },
@@ -17,6 +27,10 @@ export default defineConfig(({ command }) => ({
         rollupOptions: {
           // Use the Lambda handler as the server entry so build/server/index.mjs exports `handler`
           input: "app/server/index.ts",
+          output: {
+            // Force .mjs so Lambda always treats chunks as ESM regardless of package.json
+            chunkFileNames: "assets/[name]-[hash].mjs",
+          },
         },
       },
     },
