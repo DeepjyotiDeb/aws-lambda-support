@@ -1,13 +1,31 @@
 #!/usr/bin/env node
 import * as cdk from "aws-cdk-lib";
+import * as logs from "aws-cdk-lib/aws-logs";
 import { ReactRouterSsrStack } from "../lib/ssr.stack";
 // import { WafStack } from "../lib/waf.stack";
 
 const app = new cdk.App();
 const account = process.env.CDK_ACCOUNT_ID;
 const region = process.env.CDK_DEFAULT_REGION;
-const originSecret = process.env.ORIGIN_SECRET;
-const sessionSecret = process.env.SESSION_SECRET;
+
+const cookieSecrets = process.env.COOKIE_SECRETS!;
+const mongodbUri = process.env.MONGODB_URI!;
+const sesFromAddress = process.env.SES_FROM_ADDRESS;
+
+// AUTH_* feature flags — only inject the ones explicitly set so defaults in code stay effective
+const authFlags = Object.fromEntries(
+  [
+    "AUTH_ENABLE_CREDENTIALS",
+    "AUTH_ENABLE_EMAIL_VERIFICATION",
+    "AUTH_ENABLE_PASSWORD_RESET",
+    "AUTH_ENABLE_GOOGLE",
+    "AUTH_ENABLE_GITHUB",
+    "AUTH_ALLOW_MULTI_SESSION",
+  ]
+    .filter((k) => process.env[k] !== undefined)
+    .map((k) => [k, process.env[k]!]),
+);
+
 // Stack ID is derived from package.json name so it stays stable across checkouts
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { name: appName } = require("../../package.json") as { name: string };
@@ -16,8 +34,11 @@ new ReactRouterSsrStack(app, `${appName}-Dev`, {
   env: { account, region },
   stage: "dev",
   appName,
-  originSecret,
-  sessionSecret,
+  cookieSecrets,
+  mongodbUri,
+  sesFromAddress,
+  authFlags,
+  logRetention: logs.RetentionDays.ONE_DAY,
   description: `React Router SSR Stack for ${appName} Development`,
 });
 
@@ -34,8 +55,11 @@ new ReactRouterSsrStack(app, `${appName}-Staging`, {
   env: { account, region },
   stage: "staging",
   appName,
-  originSecret,
-  sessionSecret,
+  cookieSecrets,
+  mongodbUri,
+  sesFromAddress,
+  authFlags,
+  logRetention: logs.RetentionDays.ONE_MONTH,
   // webAclArn: stagingWaf.webAclArn,
   // reservedConcurrency: 50,
   // provisionedConcurrency: 2,
@@ -52,8 +76,11 @@ new ReactRouterSsrStack(app, `${appName}-Prod`, {
   env: { account, region },
   stage: "prod",
   appName,
-  originSecret,
-  sessionSecret,
+  cookieSecrets,
+  mongodbUri,
+  sesFromAddress,
+  authFlags,
+  logRetention: logs.RetentionDays.THREE_MONTHS,
   // webAclArn: prodWaf.webAclArn,
   // reservedConcurrency: 200,
   // provisionedConcurrency: 5,

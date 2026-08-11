@@ -20,6 +20,18 @@ export class TokenDAO {
     return { ...raw, userId: raw.userId.toString() };
   }
 
+  static async findOneAndDeleteByHash(
+    tokenHash: string,
+    type: TokenType,
+  ): Promise<TokenDocument | null> {
+    const db = getDb();
+    const raw = await db
+      .collection<TokenDocument>("tokens")
+      .findOneAndDelete({ tokenHash, type }, { projection: { _id: 0 } });
+    if (!raw) return null;
+    return { ...raw, userId: raw.userId.toString() };
+  }
+
   static async deleteByHash(tokenHash: string, type: TokenType): Promise<void> {
     const db = getDb();
     await db.collection("tokens").deleteOne({ tokenHash, type });

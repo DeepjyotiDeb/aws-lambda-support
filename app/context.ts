@@ -1,5 +1,11 @@
 import { createContext as createRouterContext } from "react-router";
-import type { User } from "~/server/db";
+
+export type SessionUser = {
+  userId: string;
+  email: string;
+  emailVerified: boolean;
+  createdAt: Date;
+};
 
 export type AuthFlags = {
   credentials: boolean;
@@ -31,5 +37,5 @@ export function getAuthFlagsFromEnv(): AuthFlags {
 }
 
 // React Router server/middleware contexts (used with context.set() and context.get())
-export const userContext = createRouterContext<User | null>(null);
+export const userContext = createRouterContext<SessionUser | null>(null);
 export const authFlagsContext = createRouterContext<AuthFlags>(defaultFlags);

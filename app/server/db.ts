@@ -1,15 +1,5 @@
 import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
 
-export type User = {
-  _id: ObjectId;
-  email: string;
-  passwordHash?: string;
-  googleId?: string;
-  githubId?: string;
-  emailVerified: boolean;
-  createdAt: Date;
-};
-
 // Global is used here to maintain a cached connection across hot reloads
 // in development. This prevents connections growing exponentially
 // during API Route usage.
@@ -30,9 +20,16 @@ export function getDb() {
       version: ServerApiVersion.v1,
       strict: true,
       deprecationErrors: true,
-    }
+    },
   });
 
   dbClient = client;
+  // Reset singleton on connection loss so the next request reconnects
+  client.on("close", () => {
+    dbClient = null;
+  });
+  client.on("error", () => {
+    dbClient = null;
+  });
   return client.db();
 }

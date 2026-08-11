@@ -7,17 +7,8 @@ export async function checkRateLimit(
   windowSeconds: number,
 ): Promise<boolean> {
   const key = `${ip}:${route}`;
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + windowSeconds * 1000);
-
+  const expiresAt = new Date(Date.now() + windowSeconds * 1000);
   const result = await RateLimitDAO.increment(key, expiresAt);
-  if (!result) return false; // Should not happen, but just in case
-
-  // Clean up if expired
-  if (result.expiresAt < now) {
-    await RateLimitDAO.reset(key);
-    return true;
-  }
-
+  if (!result) return false;
   return result.count <= limit;
 }

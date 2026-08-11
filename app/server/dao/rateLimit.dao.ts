@@ -7,21 +7,24 @@ export class RateLimitDAO {
     expiresAt: Date,
   ): Promise<{ count: number; expiresAt: Date } | null> {
     const db = getDb();
+    const now = new Date();
+    // Pipeline update atomically resets the window if expired, otherwise increments
     const result = await db.collection<RateLimitDocument>("rate_limits").findOneAndUpdate(
       { ipId: key },
-      {
-        $inc: { count: 1 },
-        $setOnInsert: { expiresAt },
-      },
+      [
+        {
+          $set: {
+            count: {
+              $cond: { if: { $gt: ["$expiresAt", now] }, then: { $add: ["$count", 1] }, else: 1 },
+            },
+            expiresAt: {
+              $cond: { if: { $gt: ["$expiresAt", now] }, then: "$expiresAt", else: expiresAt },
+            },
+          },
+        },
+      ],
       { upsert: true, returnDocument: "after" },
     );
-    return result && result.count ? { count: result.count, expiresAt: result.expiresAt } : null;
-  }
-
-  static async reset(key: string): Promise<void> {
-    const db = getDb();
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + 3600 * 1000); // 1 hour window
-    await db.collection("rate_limits").updateOne({ ipId: key }, { $set: { count: 1, expiresAt } });
+    return result ? { count: result.count, expiresAt: result.expiresAt } : null;
   }
 }

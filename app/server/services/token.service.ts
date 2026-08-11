@@ -48,6 +48,18 @@ export async function validateToken(
   return { userId: tokenDoc.userId.toString(), expiresAt: tokenDoc.expiresAt };
 }
 
+export async function consumeAndValidateToken(
+  type: TokenType,
+  rawToken: string,
+): Promise<{ userId: string; expiresAt: Date } | null> {
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+  // Atomically remove the token so concurrent requests cannot reuse it
+  const doc = await TokenDAO.findOneAndDeleteByHash(tokenHash, type);
+  if (!doc) return null;
+  if (doc.expiresAt < new Date()) return null;
+  return { userId: doc.userId, expiresAt: doc.expiresAt };
+}
+
 export async function consumeToken(type: TokenType, rawToken: string): Promise<void> {
   const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
   await TokenDAO.deleteByHash(tokenHash, type);

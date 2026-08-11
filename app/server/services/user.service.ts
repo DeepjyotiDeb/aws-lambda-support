@@ -62,7 +62,7 @@ export async function verifyUserCredentials(
   if (!user || !user.passwordHash) return null;
   const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) return null;
-  return { userId: (user as any)._id.toString() };
+  return { userId: user._id.toString() };
 }
 
 export async function processEmailVerificationToken(token: string) {
@@ -104,8 +104,8 @@ export async function resetUserPassword(token: string, newPassword: string) {
   }
 
   await consumeToken("password_reset", token);
-
-  await UserDao.updatePassword(validated.userId, newPassword);
+  const hashedPassword = await hashPassword(newPassword);
+  await UserDao.updatePassword(validated.userId, hashedPassword);
 
   await deleteAllUserTokens(validated.userId, "refresh");
 

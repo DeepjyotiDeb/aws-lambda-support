@@ -1,6 +1,10 @@
 import { redirect } from "react-router";
 import { getSession, commitSession, refreshCookie } from "~/server/cookie";
-import { validateToken, issueToken, daysRemaining } from "~/server/services/token.service";
+import {
+  validateToken,
+  issueToken,
+  consumeAndValidateToken,
+} from "~/server/services/token.service";
 import { userContext, authFlagsContext, getAuthFlagsFromEnv } from "~/context";
 import { getUserDetails } from "~/server/services/user.service";
 
@@ -34,13 +38,13 @@ export async function authMiddleware({ request, context }: any, next: () => Prom
 
   // 1. Check __session
   if (!userId) {
-    // 2. On miss: try __refresh
+    // 2. On miss: atomically consume refresh token to prevent concurrent reuse
     const rawRefresh = await refreshCookie.parse(cookieHeader);
     if (!rawRefresh) {
       throw redirect("/login");
     }
 
-    const validated = await validateToken("refresh", rawRefresh);
+    const validated = await consumeAndValidateToken("refresh", rawRefresh);
     if (!validated) {
       throw redirect("/login");
     }
@@ -48,12 +52,9 @@ export async function authMiddleware({ request, context }: any, next: () => Prom
     userId = validated.userId;
     session.set("userId", userId);
     newSessionIssued = true;
-
-    // Rotate refresh token if less than 15 days remaining
-    if (daysRemaining(validated.expiresAt) <= 15) {
-      newRawRefresh = await issueToken("refresh", userId);
-      newRefreshTokenIssued = true;
-    }
+    // Always reissue after consuming — token is already deleted from DB
+    newRawRefresh = await issueToken("refresh", userId);
+    newRefreshTokenIssued = true;
   }
 
   // 3. Fetch user

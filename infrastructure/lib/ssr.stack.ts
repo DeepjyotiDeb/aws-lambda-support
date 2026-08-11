@@ -11,11 +11,14 @@ import * as path from "path";
 export interface ReactRouterSsrStackProps extends cdk.StackProps {
   stage: string;
   appName: string;
-  originSecret?: string;
-  sessionSecret?: string;
+  cookieSecrets: string;
+  mongodbUri: string;
+  sesFromAddress?: string;
+  authFlags?: Record<string, string>;
   webAclArn?: string;
   reservedConcurrency?: number;
   provisionedConcurrency?: number;
+  logRetention?: logs.RetentionDays;
 }
 
 export class ReactRouterSsrStack extends cdk.Stack {
@@ -28,8 +31,11 @@ export class ReactRouterSsrStack extends cdk.Stack {
       reservedConcurrency,
       provisionedConcurrency,
       appName,
-      originSecret,
-      sessionSecret,
+      cookieSecrets,
+      mongodbUri,
+      sesFromAddress,
+      authFlags = {},
+      logRetention = logs.RetentionDays.ONE_MONTH,
     } = props;
 
     // 1. S3 Bucket for static client assets (build/client/)
@@ -42,7 +48,7 @@ export class ReactRouterSsrStack extends cdk.Stack {
 
     const logGroup = new logs.LogGroup(this, "SsrLogGroup", {
       logGroupName: `/aws/lambda/${appName}-${stage}`,
-      retention: logs.RetentionDays.ONE_DAY,
+      retention: logRetention,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
@@ -62,8 +68,10 @@ export class ReactRouterSsrStack extends cdk.Stack {
       systemLogLevel: lambda.SystemLogLevel.WARN,
       environment: {
         NODE_ENV: "production",
-        ...(originSecret ? { ORIGIN_SECRET: originSecret } : {}),
-        ...(sessionSecret ? { SESSION_SECRET: sessionSecret } : {}),
+        COOKIE_SECRETS: cookieSecrets,
+        MONGODB_URI: mongodbUri,
+        ...(sesFromAddress ? { SES_FROM_ADDRESS: sesFromAddress } : {}),
+        ...authFlags,
       },
     });
 
@@ -108,9 +116,7 @@ export class ReactRouterSsrStack extends cdk.Stack {
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
       webAclId: webAclArn,
       defaultBehavior: {
-        origin: new origins.HttpOrigin(lambdaDomain, {
-          ...(originSecret ? { customHeaders: { "x-origin-secret": originSecret } } : {}),
-        }),
+        origin: new origins.HttpOrigin(lambdaDomain),
         allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
@@ -136,9 +142,7 @@ export class ReactRouterSsrStack extends cdk.Stack {
 
     // React Router v8 single-fetch uses "<route>.data" for all data requests.
     // Must be routed to Lambda before "*.*" matches it and sends it to S3.
-    const ssrOrigin = new origins.HttpOrigin(lambdaDomain, {
-      ...(originSecret ? { customHeaders: { "x-origin-secret": originSecret } } : {}),
-    });
+    const ssrOrigin = new origins.HttpOrigin(lambdaDomain);
     distribution.addBehavior("*.data", ssrOrigin, {
       allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
       viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
