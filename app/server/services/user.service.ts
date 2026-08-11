@@ -65,7 +65,7 @@ export async function verifyUserCredentials(
   return { userId: (user as any)._id.toString() };
 }
 
-export async function verifyUserToken(token: string) {
+export async function processEmailVerificationToken(token: string) {
   const validated = await validateToken("email_verification", token);
   if (!validated) {
     return { error: "Invalid or expired verification link." };
@@ -74,6 +74,8 @@ export async function verifyUserToken(token: string) {
   if (!user) {
     return { error: "User not found." };
   }
+
+  await UserDao.markEmailVerified(validated.userId);
 
   await consumeToken("email_verification", token);
   return { success: true };

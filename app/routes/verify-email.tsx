@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import type { Route } from "./+types/verify-email";
-import { verifyUserToken } from "~/server/services/user.service";
+import { processEmailVerificationToken } from "~/server/services/user.service";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
@@ -10,7 +10,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     return { error: "Missing verification token." };
   }
 
-  const validated = await verifyUserToken(token);
+  const validated = await processEmailVerificationToken(token);
   if ("error" in validated) {
     return { error: validated.error };
   }

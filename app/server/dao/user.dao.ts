@@ -33,4 +33,14 @@ export class UserDao {
       .collection<UserDocument>("users")
       .updateOne({ _id: new ObjectId(userId) }, { $set: { passwordHash, updatedAt: new Date() } });
   }
+
+  static async markEmailVerified(userId: string) {
+    const db = getDb();
+    await db
+      .collection<UserDocument>("users")
+      .updateOne(
+        { _id: new ObjectId(userId) },
+        { $set: { emailVerified: true, updatedAt: new Date() } },
+      );
+  }
 }
