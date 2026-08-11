@@ -1,10 +1,12 @@
 # React Router v8 SSR on AWS
 
-A project template for server-side rendered React Router v8 apps deployed to AWS using CDK. The stack provisions a Lambda function for SSR, an S3 bucket for static assets, and a CloudFront distribution in front of both.
+An opinionated project template for server-side rendered React Router v8 apps deployed to AWS using CDK. The stack provisions a Lambda function for SSR, an S3 bucket for static assets, and a CloudFront distribution in front of both.
+
+Includes a full server-side auth system with sliding-window session management, MongoDB persistence, a DAO/service layer, and feature-flag-controlled auth flows (email verification, password reset, OAuth stubs).
 
 To use this template run the following command
 ```bash
-npx create-react-router@latest my-web-app --template DeepjyotiDeb/aws-lambda-support
+npx create-react-router@latest my-web-app --template DeepjyotiDeb/aws-lambda-support#mongo-auth
 ```
 
 ## Architecture
@@ -106,48 +108,113 @@ To enable, uncomment the following in `infrastructure/bin/app.ts`:
 
 To enable, uncomment the `reservedConcurrency` and `provisionedConcurrency` props inside the staging and prod `ReactRouterSsrStack` calls in `infrastructure/bin/app.ts`.
 
-## Session storage
+## Auth system
 
-`app/server/session.ts` exports a signed cookie session using React Router's `createCookieSessionStorage`. It is untyped by default — add TypeScript generics to get type-safe `session.get`/`session.set` calls:
+The template ships a complete session-based auth system. All auth logic is server-only — nothing sensitive reaches the client bundle.
+
+### Session architecture
+
+Auth uses two signed HttpOnly cookies managed by `app/server/cookie.ts`:
+
+| Cookie | TTL | Purpose |
+|---|---|---|
+| `__session` | 5 minutes | Short-lived session, holds `userId` |
+| `__refresh` | 30 days | Long-lived refresh token (hashed in MongoDB) |
+
+The `authMiddleware` in `app/middleware/auth.middleware.ts` runs on every non-public request:
+
+1. Checks `__session` for a valid `userId`
+2. On miss, validates `__refresh` against the `tokens` MongoDB collection
+3. If the refresh token has ≤ 15 days remaining, it is rotated (sliding window)
+4. Looks up the user document and puts part of it in React Router context
+5. Sets `Cache-Control: private, no-store` on every response
+
+All protected routes receive the authenticated user automatically — no per-route auth checks needed.
+
+### Pre-built routes
+
+| Route | Purpose |
+|---|---|
+| `/login` | Email/password sign-in |
+| `/register` | Account creation |
+| `/logout` | Session + refresh token destruction |
+| `/reset-password` | Request a password reset email |
+| `/reset-password/confirm` | Consume reset token and set new password |
+| `/verify-email` | Consume email verification token |
+
+### Protecting and reading from routes
+
+All routes are protected by default. To make a route public, add its path prefix to `PUBLIC_ALLOWLIST` in `app/middleware/auth.middleware.ts`.
+
+To access the authenticated user in a loader or action:
 
 ```ts
-type SessionData = {
-  user: { id: string; name: string; email: string };
-};
+import { userContext } from "~/context";
 
-type SessionFlashData = {
-  error: string;
-};
-
-export const { getSession, commitSession, destroySession } =
-  createCookieSessionStorage<SessionData, SessionFlashData>({ ... });
+export async function loader({ context }: Route.LoaderArgs) {
+  const user = context.get(userContext)!; // guaranteed non-null on protected routes
+  return { email: user.email };
+}
 ```
 
-To read/write the session in a loader, action, or middleware:
+### Feature flags
 
-```ts
-import { getSession, commitSession, destroySession } from "~/server/session";
+Auth features are toggled via environment variables:
 
-// read
-const session = await getSession(request.headers.get("Cookie"));
-const user = session.get("user") ?? null;
+| Variable | Default | Effect |
+|---|---|---|
+| `AUTH_ENABLE_CREDENTIALS` | `true` | Email/password login and registration |
+| `AUTH_ENABLE_EMAIL_VERIFICATION` | `false` | Require email verification on register |
+| `AUTH_ENABLE_PASSWORD_RESET` | `false` | Enable password reset flow |
+| `AUTH_ENABLE_GOOGLE` | `false` | Google OAuth (stub — wire up your own) |
+| `AUTH_ENABLE_GITHUB` | `false` | GitHub OAuth (stub — wire up your own) |
+| `AUTH_ALLOW_MULTI_SESSION` | `true` | Allow concurrent sessions per user |
 
-// write and persist
-session.set("user", { id: "1", name: "Alice", email: "alice@example.com" });
-return redirect("/dashboard", {
-  headers: { "Set-Cookie": await commitSession(session) },
-});
+### MongoDB setup
 
-// destroy (logout)
-return redirect("/", {
-  headers: { "Set-Cookie": await destroySession(session) },
-});
+The app requires a MongoDB database. Set `MONGODB_URI` in your environment. Create the following indexes for performance and TTL cleanup:
+
+```js
+// Unique email lookup
+db.users.createIndex({ email: 1 }, { unique: true })
+
+// Token lookup by hash
+db.tokens.createIndex({ tokenHash: 1, type: 1 })
+
+// Auto-delete expired tokens
+db.tokens.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })
+
+// Rate limiter
+db.rateLimits.createIndex({ key: 1 }, { unique: true })
+db.rateLimits.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })
 ```
 
-`SESSION_SECRET` must be set as an environment variable at deploy time — see the gotcha note below. Rotate it by adding a new value to the front of the `secrets` array (old sessions remain valid until they expire):
+### Code architecture
 
-```ts
-secrets: [process.env.SESSION_SECRET_NEW!, process.env.SESSION_SECRET_OLD!],
+```
+app/server/
+  cookie.ts                  — dual-cookie definitions (__session + __refresh)
+  db.ts                      — MongoDB connection + User type
+  auth.ts                    — password hashing, createAuthResponse, destroyAuth
+  dao/
+    schemas/                 — valibot schemas (source of truth for document types)
+    user.dao.ts              — User collection CRUD
+    token.dao.ts             — Token collection CRUD
+    rateLimit.dao.ts         — Rate limit collection CRUD
+  services/
+    user.service.ts          — register, login verification, email verification, password reset
+    token.service.ts         — issue, validate, consume tokens
+    rateLimiter.service.ts   — per-IP sliding window rate limiting
+```
+
+DAOs handle raw DB access only. Services own business logic. Routes handle HTTP parsing and response construction.
+
+### Cookie secrets
+
+`COOKIE_SECRETS` must be set as a comma-separated string. Rotate secrets by prepending a new value — old cookies remain valid until they expire:
+
+```
+COOKIE_SECRETS=new-secret,old-secret
 ```
 
 ## Known gotchas
@@ -163,7 +230,7 @@ React Router v8 uses single fetch — form submissions and data requests are sen
 The CDK stack handles this with a dedicated `*.data` behavior that routes to Lambda before `*.*` is evaluated. If React Router changes its internal URL conventions in a future version, a new behavior may need to be added.
 
 ### Environment variables must be set at deploy time
-`SESSION_SECRET` and `ORIGIN_SECRET` are passed as Lambda environment variables at deploy time. They are not stored in Secrets Manager by default. Make sure both are present in your shell environment (or CI) when running `npm run cdk:deploy:*`, otherwise the Lambda will start without them and session signing will fail at runtime.
+`COOKIE_SECRETS` and `MONGODB_URI` are passed as Lambda environment variables at deploy time. They are not stored in Secrets Manager by default. Make sure both are present in your shell environment (or CI) when running `npm run cdk:deploy:*`, otherwise the Lambda will start without them and session signing or database connections will fail at runtime.
 
 ### Stale Lambda code after CDK infrastructure-only changes
 CDK detects code changes by hashing the `build/server` asset. If you change only CDK infrastructure (e.g. adding an environment variable) and redeploy, CDK may report `no changes` to the Lambda code and reuse the previously deployed bundle. Always run `npm run build` before deploying if app code has changed, or use `npm run cdk:deploy:*` which runs the build step automatically.
