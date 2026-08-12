@@ -14,9 +14,7 @@ const region = process.env.CDK_DEFAULT_REGION;
 // AUTH_* feature flags — only inject the ones explicitly set so defaults in code stay effective
 const authFlags = Object.fromEntries(
   [
-    "AUTH_ENABLE_CREDENTIALS",
     "AUTH_ENABLE_EMAIL_VERIFICATION",
-    "AUTH_ENABLE_PASSWORD_RESET",
     "AUTH_ENABLE_GOOGLE",
     "AUTH_ENABLE_GITHUB",
     "AUTH_ALLOW_MULTI_SESSION",

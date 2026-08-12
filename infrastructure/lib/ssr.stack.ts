@@ -6,6 +6,7 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
+import * as iam from "aws-cdk-lib/aws-iam";
 import * as path from "path";
 
 export interface ReactRouterSsrStackProps extends cdk.StackProps {
@@ -65,6 +66,14 @@ export class ReactRouterSsrStack extends cdk.Stack {
         ...environment,
       },
     });
+
+    // Grant Lambda permission to send emails via SES — credentials come from the execution role
+    ssrLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["ses:SendEmail", "ses:SendRawEmail"],
+        resources: ["*"],
+      }),
+    );
 
     // 3. Alias — provisioned concurrency (if set) eliminates cold starts for staging/prod
     const ssrAlias = new lambda.Alias(this, "SsrAlias", {

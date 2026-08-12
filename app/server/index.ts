@@ -2,8 +2,6 @@ import * as build from "virtual:react-router/server-build";
 import { RouterContextProvider } from "react-router";
 import { createFunctionURLStreamingRequestHandler } from "./adapter";
 
-// console.log("[server] SESSION_SECRET set:", !!process.env.SESSION_SECRET);
-// console.log("[server] ORIGIN_SECRET set:", !!process.env.ORIGIN_SECRET);
 // console.log("[server] NODE_ENV:", process.env.NODE_ENV);
 
 export const handler = createFunctionURLStreamingRequestHandler({

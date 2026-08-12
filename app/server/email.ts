@@ -2,10 +2,6 @@ import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 
 const sesClient = new SESClient({
   region: process.env.CDK_DEFAULT_REGION,
-  credentials: {
-    accessKeyId: process.env.ACCESS_KEY!,
-    secretAccessKey: process.env.SECRET_KEY!,
-  },
 });
 
 export async function sendEmail(to: string, subject: string, htmlBody: string) {
