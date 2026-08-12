@@ -7,7 +7,7 @@
     "dev": "react-router dev",
     "typecheck": "react-router typegen && tsc",
     "lint": "eslint . --ext .ts,.tsx",
-    "cdk": "cdk --app \"node --env-file=.env ./node_modules/.bin/ts-node --project infrastructure/tsconfig.json infrastructure/bin/app.ts\"",
+    "cdk": "cdk --app \"node --env-file=.env ./node_modules/.bin/ts-node --project infrastructure/tsconfig.json infrastructure/bin/app.ts\" --output infrastructure/cdk.out",
     "cdk:name": "node -p \"require('./package.json').name\"",
     "cdk:deploy:dev": "npm run build && npm run cdk -- deploy $(npm run --silent cdk:name)-Dev",
     "cdk:deploy:staging": "npm run build && npm run cdk -- deploy \"$(npm run --silent cdk:name)-Staging*\"",

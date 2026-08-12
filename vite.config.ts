@@ -8,7 +8,7 @@ export default defineConfig(({ command }) => ({
     tailwindcss(),
     reactRouter(),
     visualizer({
-      open: false, // Automatically opens the report in your browser
+      open: false,
       filename: "bundle-analysis.html",
       gzipSize: true,
       brotliSize: true,
