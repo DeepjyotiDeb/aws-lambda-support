@@ -32,6 +32,8 @@ export class ReactRouterSsrStack extends cdk.Stack {
       environment,
       logRetention = logs.RetentionDays.ONE_MONTH,
     } = props;
+    const { LAMBDA_MEMORY } = environment;
+    const memorySize = parseInt(LAMBDA_MEMORY || "512", 10);
 
     // 1. S3 Bucket for static client assets (build/client/)
     const staticAssetsBucket = new s3.Bucket(this, "StaticAssetsBucket", {
@@ -54,13 +56,14 @@ export class ReactRouterSsrStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_22_X,
       code: lambda.Code.fromAsset(path.join(__dirname, "../../build/server")),
       handler: "index.handler",
-      memorySize: 512,
+      memorySize,
+      architecture: lambda.Architecture.ARM_64,
       timeout: cdk.Duration.seconds(15),
       reservedConcurrentExecutions: reservedConcurrency,
       logGroup,
       loggingFormat: lambda.LoggingFormat.JSON,
-      applicationLogLevel: lambda.ApplicationLogLevel.INFO,
-      systemLogLevel: lambda.SystemLogLevel.WARN,
+      applicationLogLevelV2: lambda.ApplicationLogLevel.INFO,
+      systemLogLevelV2: lambda.SystemLogLevel.WARN,
       environment: {
         NODE_ENV: "production",
         ...environment,

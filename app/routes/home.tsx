@@ -14,6 +14,7 @@ export async function loader({ context }: Route.LoaderArgs) {
 export default function Home({ loaderData }: Route.ComponentProps) {
   const { email, emailVerified, createdAt } = loaderData;
   const navigation = useNavigation();
+  const isSubmitting = navigation.formAction === "/logout";
 
   return (
     <div className="flex justify-center items-center h-screen">
@@ -33,8 +34,8 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         <Form method="post" action="/logout" viewTransition>
           <button
             type="submit"
-            className={`bg-red-600 text-white p-2 rounded hover:bg-red-700 cursor-pointer ${navigation.state === "submitting" ? "opacity-50 cursor-not-allowed" : ""}`}
-            disabled={navigation.state === "submitting"}
+            className={`bg-red-600 text-white p-2 rounded hover:bg-red-700 cursor-pointer ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+            disabled={isSubmitting}
           >
             Logout
           </button>

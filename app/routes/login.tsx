@@ -12,7 +12,7 @@ const LoginSchema = v.object({
 
 export async function action({ request }: Route.ActionArgs) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "0.0.0.0";
-  const allowed = await checkRateLimit(ip, "/login", 10, 600);
+  const allowed = await checkRateLimit(ip, "/login", 10, 120);
   if (!allowed) return { error: "Too many attempts. Try again later." };
 
   const parsed = v.safeParse(LoginSchema, Object.fromEntries(await request.formData()));
@@ -29,7 +29,8 @@ export async function action({ request }: Route.ActionArgs) {
 export default function Login() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
-  const isSubmitting = navigation.state === "submitting";
+  const isSubmitting = navigation.formAction === "/login";
+
   return (
     <div className="flex justify-center items-center h-screen">
       <div className="bg-gray-700 p-8 rounded shadow-md w-96">

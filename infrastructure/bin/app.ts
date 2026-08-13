@@ -27,6 +27,7 @@ const environment: Record<string, string> = {
   COOKIE_SECRETS: process.env.COOKIE_SECRETS!,
   MONGODB_URI: process.env.MONGODB_URI!,
   SES_FROM_ADDRESS: process.env.SES_FROM_ADDRESS!,
+  LAMBDA_MEMORY: process.env.LAMBDA_MEMORY || "512",
   ...authFlags,
 };
 
