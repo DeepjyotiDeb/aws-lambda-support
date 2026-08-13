@@ -3,6 +3,7 @@ import { getSession, commitSession, refreshCookie } from "~/server/cookie";
 import { issueToken, consumeAndValidateToken } from "~/server/services/token.service";
 import { userContext, authFlagsContext, getAuthFlagsFromEnv } from "~/context";
 import { getUserDetails } from "~/server/services/user.service";
+import type { Route } from "../+types/root";
 
 const PUBLIC_ALLOWLIST = [
   "/login",
@@ -13,7 +14,7 @@ const PUBLIC_ALLOWLIST = [
   "/auth/github",
 ];
 
-export async function authMiddleware({ request, context }: any, next: () => Promise<Response>) {
+const authMiddleware: Route.MiddlewareFunction = async ({ request, context }, next) => {
   const url = new URL(request.url);
 
   context.set(authFlagsContext, getAuthFlagsFromEnv());
@@ -77,4 +78,5 @@ export async function authMiddleware({ request, context }: any, next: () => Prom
   response.headers.set("Cache-Control", "private, no-store");
 
   return response;
-}
+};
+export default authMiddleware;

@@ -1,7 +1,6 @@
 import { Form, Link, useActionData, useNavigation } from "react-router";
 import type { Route } from "./+types/register";
 import * as v from "valibot";
-import { createAuthResponse } from "~/server/auth";
 import { checkRateLimit } from "~/server/services/rateLimiter.service";
 import { registerUser } from "~/server/services/user.service";
 

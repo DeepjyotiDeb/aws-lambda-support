@@ -9,10 +9,11 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
-import { authMiddleware } from "~/middleware/auth.middleware";
-import { userContext, authFlagsContext, getAuthFlagsFromEnv } from "~/context";
 
-export const middleware = [authMiddleware];
+import { userContext, authFlagsContext, getAuthFlagsFromEnv } from "~/context";
+import authMiddleware from "~/middleware/auth.middleware";
+
+export const middleware: Route.MiddlewareFunction[] = [authMiddleware];
 
 export async function loader({ context }: Route.LoaderArgs) {
   const user = context.get(userContext) ?? null;
