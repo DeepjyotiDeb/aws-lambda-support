@@ -15,12 +15,48 @@ export class UserDao {
     return user;
   }
 
-  static async createUser(email: string, passwordHash: string, emailVerified: boolean) {
+  static async createUser(email: string, passwordHash?: string, emailVerified = false) {
     const db = getDb();
     const insertResult = await db.collection<UserDocument>("users").insertOne({
       email,
-      passwordHash,
+      ...(passwordHash ? { passwordHash } : {}),
       emailVerified,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    return insertResult.insertedId.toString();
+  }
+
+  static async findOrCreateOAuthUser(
+    email: string,
+    providerField: "googleId" | "githubId",
+    providerId: string,
+  ): Promise<string> {
+    const db = getDb();
+
+    // Try to find existing user by provider ID or email
+    const user = await db.collection<UserDocument>("users").findOne({
+      $or: [{ [providerField]: providerId }, { email }],
+    });
+
+    if (user) {
+      // Link provider ID if not already set
+      if (!user[providerField]) {
+        await db
+          .collection<UserDocument>("users")
+          .updateOne(
+            { _id: user._id },
+            { $set: { [providerField]: providerId, emailVerified: true, updatedAt: new Date() } },
+          );
+      }
+      return user._id.toString();
+    }
+
+    // Create new user
+    const insertResult = await db.collection<UserDocument>("users").insertOne({
+      email,
+      emailVerified: true,
+      [providerField]: providerId,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

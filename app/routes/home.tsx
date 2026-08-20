@@ -1,6 +1,6 @@
 import { Form, useNavigation } from "react-router";
-import type { Route } from "./+types/home";
 import { userContext } from "~/context";
+import type { Route } from "./+types/home";
 
 export function meta() {
   return [{ title: "Home" }, { name: "description", content: "Welcome!" }];
@@ -28,7 +28,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         </p>
         <p>
           <span className="font-medium">Member since:</span>{" "}
-          {new Date(createdAt).toLocaleDateString()}
+          {new Date(createdAt).toISOString().slice(0, 10)}
         </p>
 
         <Form method="post" action="/logout" viewTransition>

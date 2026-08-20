@@ -28,6 +28,12 @@ const environment: Record<string, string> = {
   MONGODB_URI: process.env.MONGODB_URI!,
   SES_FROM_ADDRESS: process.env.SES_FROM_ADDRESS!,
   LAMBDA_MEMORY: process.env.LAMBDA_MEMORY || "512",
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || "",
+  GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI || "",
+  GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID || "",
+  GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET || "",
+  GITHUB_REDIRECT_URI: process.env.GITHUB_REDIRECT_URI || "",
   ...authFlags,
 };
 

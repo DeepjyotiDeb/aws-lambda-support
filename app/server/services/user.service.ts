@@ -1,12 +1,12 @@
-import { UserDao } from "~/server/dao/user.dao";
 import { hashPassword, verifyPassword } from "~/server/auth";
+import { UserDao } from "~/server/dao/user.dao";
+import { sendEmail } from "~/server/email";
 import {
   consumeToken,
   deleteAllUserTokens,
   issueToken,
   validateToken,
 } from "~/server/services/token.service";
-import { sendEmail } from "~/server/email";
 
 type RegisterResult =
   | { status: "created"; userId: string }
@@ -52,6 +52,16 @@ export async function registerUser(
   }
 
   return { status: "created", userId };
+}
+
+export async function registerOAuthUser(
+  email: string,
+  provider: "google" | "github",
+  providerId: string,
+): Promise<string> {
+  const providerField = provider === "google" ? "googleId" : "githubId";
+  const userId = await UserDao.findOrCreateOAuthUser(email, providerField, providerId);
+  return userId;
 }
 
 export async function verifyUserCredentials(

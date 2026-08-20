@@ -1,9 +1,9 @@
-import { useActionData, Form, Link, useNavigation } from "react-router";
-import type { Route } from "./+types/login";
+import { Form, Link, useActionData, useNavigation } from "react-router";
+import * as v from "valibot";
 import { createAuthResponse } from "~/server/auth";
 import { checkRateLimit } from "~/server/services/rateLimiter.service";
-import * as v from "valibot";
 import { verifyUserCredentials } from "~/server/services/user.service";
+import type { Route } from "./+types/login";
 
 const LoginSchema = v.object({
   email: v.pipe(v.string(), v.trim(), v.email()),
@@ -55,6 +55,24 @@ export default function Login() {
             Sign In
           </button>
         </Form>
+        <div className="flex gap-2">
+          <Form method="post" action="/auth/google/call">
+            <button
+              type="submit"
+              className="bg-blue-600 text-white p-2 rounded cursor-pointer mt-2"
+            >
+              Sign in with Google
+            </button>
+          </Form>
+          <Form method="post" action="/auth/github/call">
+            <button
+              type="submit"
+              className="bg-gray-600 text-white p-2 rounded cursor-pointer mt-2"
+            >
+              Sign in with GitHub
+            </button>
+          </Form>
+        </div>
         <div className="mt-4 text-sm text-center">
           <Link to="/register" className="hover:underline">
             Create an account

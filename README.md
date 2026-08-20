@@ -4,6 +4,8 @@ An opinionated project template for server-side rendered React Router v8 apps de
 
 Includes a full server-side auth system with sliding-window session management, MongoDB persistence, a DAO/service layer, and feature-flag-controlled auth flows (email verification, password reset, OAuth stubs).
 
+Includes GitHub and Google OAuth login support.
+
 To use this template run the following command
 ```bash
 npx create-react-router@latest my-web-app --template DeepjyotiDeb/aws-lambda-support#mongo-auth
